@@ -1,42 +1,34 @@
-var amqp = require('amqplib')
+import client, { Connection, Channel, ConsumeMessage, Replies } from 'amqplib'
 
-const connect = (url = 'amqp://localhost') => {
-  return new Promise((resolve, reject) => {
-    amqp
-      .connect(url)
-      .then(conn => resolve(conn))
-      .catch(err => reject(err))
-  })
+const connect = async (
+  url = 'amqp://user:pass@localhost'
+): Promise<Connection> => {
+  return await client.connect(url)
+}
+const createChannel = async (conn: Connection): Promise<Channel> => {
+  return await conn.createChannel()
 }
 
-const createChannel = conn => {
-  return new Promise((resolve, reject) => {
-    conn
-      .createChannel()
-      .then(channel => resolve(channel))
-      .catch(err => reject(err))
-  })
+const channelAssertQueue = async (
+  channel: Channel,
+  queueName: string
+): Promise<Replies.AssertQueue> => {
+  return await channel.assertQueue(queueName)
 }
 
-const channelAssertQueue = (channel, queueName) => {
-  return new Promise((resolve, reject) => {
-    channel
-      .assertQueue(queueName)
-      .then(asserted => resolve(channel))
-      .catch(err => reject(err))
-  })
-}
-
-const sendToQueue = (channel, queueName, buffer) => {
+const sendToQueue = (channel: Channel, queueName: string, buffer: Buffer) => {
   channel.sendToQueue(queueName, buffer)
 }
 
-const consume = (channel, queue) => {
-  channel.consume(queue, msg => {
-    console.log(`reading the message: ${msg.content.toString()}`)
-    channel.ack(msg)
+const consume = (channel: Channel, queue: string) => {
+  channel.consume(queue, (msg: ConsumeMessage | null) => {
+    if (msg) {
+      console.log(`reading the message: ${msg.content.toString()}`)
+      channel.ack(msg)
+    }
   })
 }
+
 const connection = async (queueName = 'defaultQueue') => {
   const conn = await connect()
   const channel = await createChannel(conn)
